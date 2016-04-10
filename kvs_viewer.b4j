@@ -1,0 +1,867 @@
+﻿Version=4.2
+AppType=JavaFX
+NumberOfModules=1
+Module1=KeyValueStore
+Build1=Default,b4j.example
+NumberOfFiles=16
+File1=close.png
+File2=copy.png
+File3=delete.png
+File4=document_a4_edit.png
+File5=folder_database.png
+File6=folder_key.png
+File7=Glasses.png
+File8=help.html
+File9=help.png
+File10=information.png
+File11=main_form.bjl
+File12=rarr.png
+File13=remove.png
+File14=synchronize.png
+File15=textfield_delete.png
+File16=world_link.png
+NumberOfLibraries=8
+Library1=jcore
+Library2=jfx
+Library3=jsql
+Library4=jrldialogs8
+Library5=jrandomaccessfile
+Library6=javaobject
+Library7=json
+Library8=jcontrolsfx
+@EndOfDesignText@
+#Region  Project Attributes 
+	#MainFormWidth: 950
+	#MainFormHeight: 650 
+	#AdditionalJar: sqlite-jdbc-3.7.2
+	#AdditionalJar: bcprov-jdk15on-154
+#End Region
+
+Sub Process_Globals
+	Private fx As JFX
+	Private MainForm As Form
+	Private kvs As KeyValueStore
+	Private kvsRecentItems As KeyValueStore
+	Private dialogue8 As Dialogs8
+	Private strExistingFilePath As String
+	Private tableDataView As TableView
+	Private txtPassword As TextField
+	Private btnSelectFile As Button
+	Private btnReload As Button
+	Private comboFileField As ComboBox
+	Private tableviewRowIndex As Int
+	Private tableviewColIndex As Int
+	Private tableviewCell As Object
+	Private txtAddEditKeyname As TextField
+	Private txtAddEditValue As TextArea
+	Private tmr As Timer
+	Private lblStatus As Label
+	Private statusBar As StatusBar
+	Private mapMenus As  Map
+	Private mapContextMenus As  Map
+	Private MenuBar1 As MenuBar
+	Private boolIsRecentItems As Boolean
+End Sub
+
+Sub AppStart (Form1 As Form, Args() As String)
+	MainForm = Form1
+	MainForm.SetFormStyle("UNIFIED")
+	MainForm.RootPane.LoadLayout("main_form") 'Load the layout file.
+	MainForm.Icon = fx.LoadImage(File.DirAssets, "Glasses.png")
+	MainForm.Show
+	statusBar.Initialize("statusBar")
+	MainForm.RootPane.AddNode(statusBar, 0, 0, -1, 30)
+	MainForm.RootPane.SetAnchors(statusBar, 0, -1, 0, 0)
+	statusBar.Text = "KSV Viewer 1.0"
+	dialogue8.Initialize
+	tableDataView.SetColumnHeader(0, "Key")
+	tableDataView.SetColumnHeader(1, "Contents")
+	tableDataView.SetColumnWidth(0, 200.00)
+	tableDataView.SetColumnWidth(1, 740.00)
+	tableDataView.SetColumnSortable(0, True)
+	tableDataView.SetColumnSortable(1, True)
+	tableDataView.SingleCellSelection = True
+	kvsRecentItems.Initialize(GetDataFolder("KVSViewer"), "recentitems.data")
+	If kvsRecentItems.ContainsKey("ExistingFilePath") = True Then
+		strExistingFilePath = kvsRecentItems.GetSimple("ExistingFilePath")
+	End If
+	mapMenus.Initialize
+	CollectMenuItems(mapMenus, MenuBar1.Menus)
+	mapContextMenus.Initialize
+	CollectContextMenuItems(mapContextMenus, tableDataView.ContextMenu.MenuItems)
+	MenuDisableItems
+	PopulateMainFormComboBox
+End Sub
+
+Sub MainForm_Resize (Width As Double, Height As Double)
+	If MainForm.Width < 600.00 Then
+		MainForm.WindowWidth = 600.00
+	End If
+End Sub
+
+#Region status message
+
+Sub DisplayStatusMessage(strMessage As String)
+	If strMessage <> "" Then
+		lblStatus.Text = strMessage
+		tmr.Initialize("Timer1", 5000)
+		tmr.Enabled = True
+	End If
+End Sub
+
+Sub Timer1_tick
+	lblStatus.Text = ""
+	tmr.Enabled = False
+End Sub
+
+Sub ChangeStatusBarMessage(strMessage As String)
+	statusBar.Text = strMessage
+End Sub
+
+#End Region
+
+#Region Load Data
+
+Sub btnAddEdit_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
+		    Dim strPath As String
+			Dim strFile As String
+			strPath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			If File.IsDirectory(strPath, strFile) = True Then
+				dialogue8.WarningDialog("File Selection Error", "No File Selected", "You must select a file to import.")
+				MenuDisableItems
+				RecentItemsEnableDisableMenuItem
+			Else
+				DisplayStatusMessage("File Loading...")
+				ChangeStatusBarMessage("File Loading ...")
+				strExistingFilePath = strPath
+				If kvs.IsInitialized = True Then
+					kvs.Close
+				End If
+				kvs.Initialize(strPath, strFile)
+				If txtPassword.Text <> "" Then
+					kvs.PutEncyptedObject(txtAddEditKeyname.Text, txtAddEditValue.Text, txtPassword.Text)
+				Else
+					kvs.PutSimple(txtAddEditKeyname.Text, txtAddEditValue.Text)
+				End If
+				refreshTableView
+				txtAddEditKeyname.Text = ""
+				txtAddEditValue.Text = ""
+				MenuEnableItems
+				RecentItemsEnableDisableMenuItem
+				DisplayStatusMessage("Key/Value updated completed.")
+				ChangeStatusBarMessage("Key/Value pair updated. If the key did not exist it was added.")
+			End If
+		End If
+	End If
+End Sub
+
+Sub btnSelectFile_Action
+	LoadFile
+End Sub
+
+Sub btnReload_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
+		    Dim strPath As String
+			Dim strFile As String
+			strPath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			If File.IsDirectory(strPath, strFile) = True Then
+				fx.Msgbox(MainForm, "You must select a file to import.", "No File Selected")
+				MenuDisableItems
+				RecentItemsEnableDisableMenuItem
+			Else
+				DisplayStatusMessage("File Loading...")
+				ChangeStatusBarMessage("File Loading ...")
+				strExistingFilePath = strPath
+				If kvs.IsInitialized = True Then
+					kvs.Close
+				End If
+				kvs.Initialize(strPath, strFile)
+				LoadKVSData
+				tmr.Initialize("Timer1", 3000)
+				tmr.Enabled = True
+				MenuEnableItems
+				RecentItemsEnableDisableMenuItem
+				DisplayStatusMessage("File reloaded.")
+				ChangeStatusBarMessage("File reloaded.")
+			End If
+		End If
+	End If
+End Sub
+
+Sub comboFileField_ValueChanged (Value As Object)
+	If Value = Null Then
+		menuClearData_Action
+		MenuDisableItems
+	End If
+End Sub
+
+Sub comboFileField_SelectedIndexChanged(Index As Int, Value As Object)
+	If comboFileField.SelectedIndex > -1 Then
+		If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
+			Dim strFile As String
+			strExistingFilePath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			kvsRecentItems.PutSimple("ExistingFilePath", strExistingFilePath)
+			strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			If File.IsDirectory(strExistingFilePath, strFile) = True Then
+				fx.Msgbox(MainForm, "You must select a file to import.", "No File Selected")
+				MenuDisableItems
+			Else
+				DisplayStatusMessage("File Loading...")
+				ChangeStatusBarMessage("File Loading ...")
+				If kvs.IsInitialized = True Then
+					kvs.Close
+				End If
+				kvs.Initialize(strExistingFilePath, strFile)
+				LoadKVSData
+				MenuEnableItems
+				ChangeStatusBarMessage("File loaded: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
+			End If
+		End If
+	Else
+		tableDataView.Items.Clear
+		MenuDisableItems
+		ChangeStatusBarMessage("")
+	End If
+End Sub
+
+Sub LoadFile
+    Dim saveopenFile As FileChooser
+	saveopenFile.Initialize
+	If strExistingFilePath <> "" Then
+	    saveopenFile.InitialDirectory = strExistingFilePath
+	Else
+		saveopenFile.InitialDirectory = GetDataFolder("KVSViewer")
+	End If
+	Dim strFilePath As String
+	strFilePath = saveopenFile.ShowOpen(MainForm)
+	MenuDisableItems
+	If strFilePath <> "" Then
+		DisplayStatusMessage("File Loading...")
+		ChangeStatusBarMessage("File Loading ...")
+	    Dim strPath As String
+		Dim strFile As String
+		strPath = File.GetFileParent(strFilePath)
+		strFile = File.GetName(strFilePath)
+		SaveRecentItems(strPath, strFile)
+		Dim boolIsInList As Boolean = False
+		For i = 0 To comboFileField.Items.Size - 1
+			If comboFileField.Items.Get(i) = strFilePath Then
+				boolIsInList = True
+				comboFileField.SelectedIndex = i
+			End If
+		Next
+		If boolIsInList = False Then
+			comboFileField.Items.InsertAt(0, strFilePath)
+			comboFileField.SelectedIndex = 0
+		End If
+		MenuEnableItems
+		ChangeStatusBarMessage("File loaded: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
+	End If
+End Sub
+
+Sub LoadKVSData
+	tableDataView.Items.Clear
+	Dim listKeys As List
+	listKeys.Initialize
+	listKeys = kvs.ListKeys
+	For i = 0 To listKeys.Size - 1
+		Dim Row(2) As Object
+		Row(0) = listKeys.Get(i)
+		Dim strKeyName As String = listKeys.Get(i)
+		strKeyName = strKeyName.ToLowerCase
+		If txtPassword.Text <> "" Then
+			Try
+				Row(1) = kvs.GetEncryptedObject(listKeys.Get(i), txtPassword.Text)
+			Catch
+				If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
+					strKeyName.Contains(".jpg")
+					Dim im As ImageView
+					im.Initialize("im")
+					im.SetImage(kvs.GetBitmap(listKeys.Get(i)))
+					Row(1) = im
+			    Else
+					Try
+						Row(1) = kvs.GetObject(listKeys.Get(i))
+					Catch
+						Row(1) = kvs.GetSimple(listKeys.Get(i))
+					End Try
+				End If
+			End Try
+		Else
+			If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
+				strKeyName.Contains(".jpg")
+				Dim im As ImageView
+				im.Initialize("im")
+				im.SetImage(kvs.GetBitmap(listKeys.Get(i)))
+				Row(1) = im
+		    Else
+				Try
+					Row(1) = kvs.GetObject(listKeys.Get(i))
+				Catch
+					Row(1) = kvs.GetSimple(listKeys.Get(i))
+				End Try
+			End If
+		End If
+		tableDataView.Items.Add(Row)
+	Next
+	refreshTableView
+End Sub
+
+Sub refreshTableView
+    Dim tempData As List
+    tempData.Initialize
+    tempData.AddAll(tableDataView.Items)
+    tableDataView.Items.Clear
+    For i = 0 To tempData.Size - 1
+        Dim r() As Object = tempData.Get(i)
+        tableDataView.Items.Add(Array As Object(r(0), r(1)))
+    Next
+    tableDataView.SelectedRow = 0
+End Sub
+
+#End Region
+
+#Region Menu Items Enable Disable
+
+Private Sub CollectMenuItems(Menus As Map, Items As List)
+   For Each mi As MenuItem In Items
+     If mi.Tag <> Null And mi.Tag <> "" Then Menus.Put(mi.Tag, mi)
+     If mi Is Menu Then
+       Dim mn As Menu = mi
+       CollectMenuItems(Menus, mn.MenuItems)
+     End If
+   Next
+End Sub
+
+Private Sub CollectContextMenuItems(ContextMenus As Map, Items As List)
+   For Each mi As MenuItem In Items
+     If mi.Tag <> Null And mi.Tag <> "" Then ContextMenus.Put(mi.Tag, mi)
+     If mi Is Menu Then
+       Dim mn As Menu = mi
+       CollectContextMenuItems(ContextMenus, mn.MenuItems)
+     End If
+   Next
+End Sub
+
+Sub MenuDisableItems
+	Dim listEnable As List
+	listEnable.Initialize
+	listEnable.Add("mnuSynch")
+	listEnable.Add("mnuClear")
+	listEnable.Add("mnuBackup")
+	listEnable.Add("mnuExport")
+	listEnable.Add("mnuTableCopy")
+	listEnable.Add("mnuTableHide")
+	listEnable.Add("mnuTableEdit")
+	listEnable.Add("menuKVSDeleteRecord")
+	For i = 0 To mapMenus.Size - 1
+		For i2 = 0 To listEnable.Size - 1
+			If mapMenus.GetKeyAt(i) = listEnable.Get(i2) Then
+				Dim mi As MenuItem = mapMenus.Get(listEnable.Get(i2))
+				mi.Enabled = False
+				Exit
+			End If
+		Next
+	Next
+	Dim listContextEnable As List
+	listContextEnable.Initialize
+	listContextEnable.Add("mnuTableCopy")
+	listContextEnable.Add("mnuTableHide")
+	listContextEnable.Add("mnuTableEdit")
+	listContextEnable.Add("mnuTableDelete")
+	For i = 0 To mapContextMenus.Size - 1
+		For i2 = 0 To listContextEnable.Size - 1
+			If mapContextMenus.GetKeyAt(i) = listContextEnable.Get(i2) Then
+				Dim mi As MenuItem = mapContextMenus.Get(listContextEnable.Get(i2))
+				mi.Enabled = False
+				Exit
+			End If
+		Next
+	Next
+	RecentItemsEnableDisableMenuItem
+End Sub
+
+Sub MenuEnableItems
+	Dim listEnable As List
+	listEnable.Initialize
+	listEnable.Add("mnuSynch")
+	listEnable.Add("mnuClear")
+	listEnable.Add("mnuBackup")
+	listEnable.Add("mnuExport")
+	listEnable.Add("mnuTableCopy")
+	listEnable.Add("mnuTableHide")
+	listEnable.Add("mnuTableEdit")
+	listEnable.Add("menuKVSDeleteRecord")
+	For i = 0 To mapMenus.Size - 1
+		For i2 = 0 To listEnable.Size - 1
+			If mapMenus.GetKeyAt(i) = listEnable.Get(i2) Then
+				Dim mi As MenuItem = mapMenus.Get(listEnable.Get(i2))
+				mi.Enabled = True
+				Exit
+			End If
+		Next
+	Next
+	Dim listContextEnable As List
+	listContextEnable.Initialize
+	listContextEnable.Add("mnuTableCopy")
+	listContextEnable.Add("mnuTableHide")
+	listContextEnable.Add("mnuTableEdit")
+	listContextEnable.Add("mnuTableDelete")
+	For i = 0 To mapContextMenus.Size - 1
+		For i2 = 0 To listContextEnable.Size - 1
+			If mapContextMenus.GetKeyAt(i) = listContextEnable.Get(i2) Then
+				Dim mi As MenuItem = mapContextMenus.Get(listContextEnable.Get(i2))
+				mi.Enabled = True
+				Exit
+			End If
+		Next
+	Next
+    RecentItemsEnableDisableMenuItem
+End Sub
+
+#End Region
+
+#Region ContextMenu Items
+
+Sub menuCopyTableCell_Action
+	If tableDataView.SelectedRow >= 0 Then
+		Dim strCellContent As String = tableviewCell
+		fx.Clipboard.SetString(strCellContent)
+		ChangeStatusBarMessage("Cell contents copied to clipboard.")
+	End If
+End Sub
+
+Sub menuHideTableRow_Action
+	If tableDataView.SelectedRow >= 0 Then
+		tableDataView.Items.RemoveAt(tableDataView.SelectedRow)
+		DisplayStatusMessage("Click RELOAD to see the item again.")
+		ChangeStatusBarMessage("The selected row has been hidden, but not deleted from the KSV file. To see the row again, click the Reload button.")
+	End If
+End Sub
+
+Sub menuKVSDeleteRecord_Action
+	If tableDataView.SelectedRow >= 0 Then
+		If dialogue8.ConfirmationDialog("Key Value Store", "Live File Modification Confirmation", "Do you really want to DELETE the selected key/value pair from the LIVE file?") = True Then
+			Dim Row() As Object = tableDataView.Items.Get(tableDataView.SelectedRow)
+			Dim strKeyname As String = Row(0)
+			kvs.Remove(Row(0))
+			tableDataView.Items.RemoveAt(tableDataView.SelectedRow)
+			DisplayStatusMessage("Record removed from KVS.")
+			ChangeStatusBarMessage("The selected record for the key " & QUOTE & strKeyname & QUOTE & " has been permanently removed from: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
+			refreshTableView
+		Else
+			DisplayStatusMessage("Record deletion has been cancelled.")
+		End If
+	End If
+End Sub
+
+Sub menuEditRecord_Action
+	If tableDataView.SelectedRow >= 0 Then
+		Dim Row() As Object = tableDataView.Items.Get(tableDataView.SelectedRow)
+		txtAddEditKeyname.Text = Row(0)
+		txtAddEditValue.Text = Row(1)
+	End If
+End Sub
+
+#End Region
+
+#Region Menu Items
+
+Sub menuExit_Action
+	ExitApplication
+End Sub
+
+Sub menuClearData_Action
+	tableDataView.Items.Clear
+	If kvs.IsInitialized = True Then
+		kvs.Close
+	End If
+	ChangeStatusBarMessage("Contents cleared.")
+	MenuDisableItems
+End Sub
+
+Sub menuClearRecentItems_Action
+	ClearRecentItemsList
+	DisplayStatusMessage("Recent items deleted.")
+	ChangeStatusBarMessage("The recent items list has been deleted.")
+End Sub
+
+Sub menuAbout_Action
+    dialogue8.InformationDialog("About", "KVS Viewer V1.0" & CRLF & "Copyright © 2016, James Melanson", "KVS Viewer allows you to view the contents of a KVS data file while developing your application, or during data forensics.")
+	'"Application icon provided free by icon8.com : http://ic8.link/3694"
+    ChangeStatusBarMessage("KSV Viewer 1.0, Copyright © 2016, Jim Melanson")
+End Sub
+
+Sub menuHelp_Action
+   Dim strHtml As String
+   strHtml = File.ReadString(File.DirAssets, "help.html")
+   dialogue8.MessageHTMLDialog("KVS Viewer Help File", strHtml)
+End Sub
+
+Sub menuBackupKSVFile_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
+		    Dim strPath As String
+			Dim strFile As String
+			strPath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+			If File.IsDirectory(strPath, strFile) = True Then
+				dialogue8.WarningDialog("File Selection Error", "No File Selected", "You must select a file to import.")
+			Else
+				Dim strTempFileName As String = strFile
+				Dim strExtension As String
+				If strFile.IndexOf(".") > 0 Then
+					Dim parts() As String = Regex.Split("\.", strFile)
+					strExtension = parts(parts.Length - 1)
+					If parts.Length > 2 Then
+						For i = 0 To parts.Length - 2
+							strTempFileName = strTempFileName & parts(i)
+						Next
+					Else
+						strTempFileName = parts(0)
+					End If
+				End If
+				Dim strUseFileName As String
+				For i = 1 To 10000
+					If strExtension <> "" Then
+						If File.Exists(strPath, strTempFileName & "_backup_" & i & "." & strExtension) = False Then
+							strUseFileName = strTempFileName & "_backup_" & i & "." & strExtension
+							Exit
+						End If
+					Else
+						If File.Exists(strPath, strTempFileName & "_backup_" & i) = False Then
+							strUseFileName = strTempFileName & "_backup_" & i
+							Exit
+						End If
+					End If
+				Next
+				If strUseFileName <> "" Then
+					File.Copy(strPath, strFile, strPath, strUseFileName)
+					DisplayStatusMessage("Backup file created.")
+	    			ChangeStatusBarMessage("Backup file creadted: " & File.Combine(strPath, strUseFileName))
+				Else
+					dialogue8.WarningDialog("KSV File Backup", "Backup Error", "The application could not create a backup file. Please do so manually.")
+					DisplayStatusMessage("Backup Failed.")
+					ChangeStatusBarMessage("Backu process failed. There are too many backup copies. Please backup the file manually, or remove some of your previous backups.")
+				End If
+			End If
+		End If
+	End If
+End Sub
+
+Sub menuExportToCSV_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If tableDataView.Items.Size > 0 Then
+		    Dim listWrite As List
+		    listWrite.Initialize
+			Dim boolIsData As Boolean = False
+			Dim strRecord As String
+			strRecord = QUOTE & "Key Name" & QUOTE & "," & QUOTE & "Value" & QUOTE
+			listWrite.Add(strRecord)
+		    For i = 0 To tableDataView.Items.Size - 1
+				Dim Row() As Object = tableDataView.Items.Get(i)
+				Dim strThisKey As String = Row(0)
+				strThisKey.Replace(QUOTE, QUOTE & QUOTE)
+				Dim strThisValue As String = Row(1)
+				strThisValue.Replace(QUOTE, QUOTE & QUOTE)
+				strRecord = QUOTE & strThisKey & QUOTE & "," & QUOTE & strThisValue & QUOTE
+				listWrite.Add(strRecord)
+				boolIsData = True
+			Next
+			If boolIsData = True Then
+				Dim fc As FileChooser
+				fc.Initialize
+				If strExistingFilePath.Length > 0 Then
+					fc.InitialDirectory = strExistingFilePath
+				Else
+					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+				End If
+				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("csv")
+				fc.Title = "Save CSV File"
+				Dim strSaveAs As String
+				strSaveAs = fc.Showsave(MainForm)
+				' No file selected then return
+				If strSaveAs.Length = 0 Then Return
+				Dim fileO As JavaObject
+			   	fileO.InitializeNewInstance("java.io.File", Array As Object(strSaveAs))
+				Dim fileName As String
+				Dim filePath As String
+				fileName = fileO.RunMethod("getName", Null)
+				filePath = fileO.RunMethod("getPath", Null)
+				filePath = filePath.Replace(fileName, "")
+				strExistingFilePath = filePath
+				File.WriteList(filePath, fileName, listWrite)
+				DisplayStatusMessage(File.Combine(filePath, fileName))
+				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
+				ChangeStatusBarMessage("The displayed contents have been exported as a CSV file: " & File.Combine(filePath, fileName))
+			End If
+		End If
+	End If
+End Sub
+
+Sub menuExportToText_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If tableDataView.Items.Size > 0 Then
+		    Dim listWrite As List
+		    listWrite.Initialize
+			Dim boolIsData As Boolean = False
+			Dim strRecord As String
+		    For i = 0 To tableDataView.Items.Size - 1
+				Dim Row() As Object = tableDataView.Items.Get(i)
+				strRecord = Row(0) & TAB & "=>" & TAB & Row(1)
+				listWrite.Add(strRecord)
+				boolIsData = True
+			Next
+			If boolIsData = True Then
+				Dim fc As FileChooser
+				fc.Initialize
+				If strExistingFilePath.Length > 0 Then
+					fc.InitialDirectory = strExistingFilePath
+				Else
+					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+				End If
+				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("txt")
+				fc.Title = "Save CSV File"
+				Dim strSaveAs As String
+				strSaveAs = fc.Showsave(MainForm)
+				' No file selected then return
+				If strSaveAs.Length = 0 Then Return
+				Dim fileO As JavaObject
+			   	fileO.InitializeNewInstance("java.io.File", Array As Object(strSaveAs))
+				Dim fileName As String
+				Dim filePath As String
+				fileName = fileO.RunMethod("getName", Null)
+				filePath = fileO.RunMethod("getPath", Null)
+				filePath = filePath.Replace(fileName, "")
+				strExistingFilePath = filePath
+				File.WriteList(filePath, fileName, listWrite)
+				DisplayStatusMessage(File.Combine(filePath, fileName))
+				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
+				ChangeStatusBarMessage("The displayed contents have been exported as a TEXT file: " & File.Combine(filePath, fileName))
+			End If
+		End If
+	End If
+End Sub
+
+Sub menuExportToXML_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If tableDataView.Items.Size > 0 Then
+			Dim boolIsData As Boolean
+			Dim strXMLContent As String
+			strXMLContent = "<?xml version=" & QUOTE & "1.0" & QUOTE & "?>" & CRLF & "<kvs url=" & QUOTE & comboFileField.Items.Get(comboFileField.SelectedIndex) & QUOTE & " modified=" & QUOTE & DateTime.Date(File.LastModified(File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex)), File.getname(comboFileField.Items.Get(comboFileField.SelectedIndex)))) & QUOTE & " xmlgenerated=" & QUOTE & DateTime.Date(DateTime.Now) & QUOTE & " encoding=" & QUOTE & "UTF-8" & QUOTE & ">" & CRLF
+		    For i = 0 To tableDataView.Items.Size - 1
+				Dim Row() As Object = tableDataView.Items.Get(i)
+				strXMLContent = strXMLContent & "  <record>" & CRLF & "    <key>" & Row(0) & "</key>" & CRLF & "    <value>" & Row(1) & "</value>" & CRLF & "  </record>" & CRLF
+				boolIsData = True
+			Next
+			strXMLContent = strXMLContent & "</kvs>" & CRLF
+			If boolIsData = True Then
+				Dim fc As FileChooser
+				fc.Initialize
+				If strExistingFilePath.Length > 0 Then
+					fc.InitialDirectory = strExistingFilePath
+				Else
+					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+				End If
+				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("xml")
+				fc.Title = "Save CSV File"
+				Dim strSaveAs As String
+				strSaveAs = fc.Showsave(MainForm)
+				' No file selected then return
+				If strSaveAs.Length = 0 Then Return
+				Dim fileO As JavaObject
+			   	fileO.InitializeNewInstance("java.io.File", Array As Object(strSaveAs))
+				Dim fileName As String
+				Dim filePath As String
+				fileName = fileO.RunMethod("getName", Null)
+				filePath = fileO.RunMethod("getPath", Null)
+				filePath = filePath.Replace(fileName, "")
+				strExistingFilePath = filePath
+				File.WriteString(filePath, fileName, strXMLContent)
+				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
+				DisplayStatusMessage(File.Combine(filePath, fileName))
+				ChangeStatusBarMessage("The displayed contents have been exported as an XML file: " & File.Combine(filePath, fileName))
+			End If
+		End If
+	End If
+End Sub
+
+Sub menuExportToJSON_Action
+	If comboFileField.SelectedIndex > -1 Then
+		If tableDataView.Items.Size > 0 Then
+		    Dim mapJson As Map
+		    mapJson.Initialize
+			Dim boolIsData As Boolean = False
+		    For i = 0 To tableDataView.Items.Size - 1
+				Dim Row() As Object = tableDataView.Items.Get(i)
+				mapJson.Put(Row(0), Row(1))
+				boolIsData = True
+			Next
+			If boolIsData = True Then
+				Dim JSONGenerator As JSONGenerator
+				Dim Data As List
+				Data.Initialize
+				Data.Add(mapJson) 
+				JSONGenerator.Initialize2(Data)
+				Dim fc As FileChooser
+				fc.Initialize
+				If strExistingFilePath.Length > 0 Then
+					fc.InitialDirectory = strExistingFilePath
+				Else
+					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+				End If
+				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("json")
+				fc.Title = "Save CSV File"
+				Dim strSaveAs As String
+				strSaveAs = fc.Showsave(MainForm)
+				' No file selected then return
+				If strSaveAs.Length = 0 Then Return
+				Dim fileO As JavaObject
+			   	fileO.InitializeNewInstance("java.io.File", Array As Object(strSaveAs))
+				Dim fileName As String
+				Dim filePath As String
+				fileName = fileO.RunMethod("getName", Null)
+				filePath = fileO.RunMethod("getPath", Null)
+				filePath = filePath.Replace(fileName, "")
+				strExistingFilePath = filePath
+				File.WriteString(filePath, fileName, JSONGenerator.ToPrettyString(2))
+				dialogue8.InformationDialog("Export Confirmation", "JSON File Created", "You will find the file here:" & CRLF & CRLF & File.Combine(filePath, fileName))
+				ChangeStatusBarMessage("The displayed contents have been exported as a JSON file: " & File.Combine(filePath, fileName))
+			End If
+		End If
+	End If
+End Sub
+
+Sub menuValidatorCSV_Action
+	fx.ShowExternalDocument("http://csvlint.io/")
+	ChangeStatusBarMessage("Opened webpage : http://csvlint.io/")
+End Sub
+
+Sub menuValidatorJSON_Action
+	fx.ShowExternalDocument("http://jsonlint.com/")
+	ChangeStatusBarMessage("Opened webpage : http://jsonlint.com/")
+End Sub
+
+Sub menuValidatorXML_Action
+	fx.ShowExternalDocument("http://www.xmlvalidation.com/")
+	ChangeStatusBarMessage("Opened webpage : http://www.xmlvalidation.com/")
+End Sub
+
+
+
+#End Region
+
+#Region Recent Items
+
+Sub ClearRecentItemsList
+	If comboFileField.Items.Size > 1 Then
+		If dialogue8.ConfirmationDialog("Recent Items List", "Clear Recent Items List", "Do you really want to empty the recent items list?") = True Then
+			kvsRecentItems.DeleteAll
+			'comboFileField.Items.Clear
+			For i = comboFileField.Items.Size - 1 To 0 Step -1
+				If comboFileField.SelectedIndex <> i Then
+				    comboFileField.Items.RemoveAt(i)
+				End If
+			Next
+			boolIsRecentItems = False
+			RecentItemsEnableDisableMenuItem
+		End If
+	End If
+End Sub
+
+Sub SaveRecentItems(strPath As String, strFile As String)
+	If kvsRecentItems.ContainsKey(strFile) = False Then
+		kvsRecentItems.PutSimple(strFile, strPath)
+		boolIsRecentItems = True
+	End If
+	PopulateMainFormComboBox
+	RecentItemsEnableDisableMenuItem
+End Sub
+
+Sub PopulateMainFormComboBox
+	comboFileField.Items.Clear
+	Dim recentFilesList As List
+	recentFilesList.Initialize
+	recentFilesList = kvsRecentItems.ListKeys
+	For i = 0 To recentFilesList.Size - 1
+	    If recentFilesList.Get(i) <> "" And recentFilesList.Get(i) <> "ExistingFilePath" Then
+			If File.Exists(kvsRecentItems.GetSimple(recentFilesList.Get(i)), recentFilesList.Get(i)) = False Then
+				kvsRecentItems.Remove(recentFilesList.Get(i))
+			Else
+				comboFileField.Items.Add(File.Combine(kvsRecentItems.GetSimple(recentFilesList.Get(i)), recentFilesList.Get(i)))
+				boolIsRecentItems = True
+			End If
+		End If
+	Next
+	RecentItemsEnableDisableMenuItem
+End Sub
+
+Sub RecentItemsEnableDisableMenuItem
+	If boolIsRecentItems = False Then
+		If mapMenus.ContainsKey("mnuRecent") = True Then
+			Dim mi As MenuItem = mapMenus.Get("mnuRecent")
+			mi.Enabled = False
+		End If
+	Else
+		If mapMenus.ContainsKey("mnuRecent") = True Then
+			Dim mi As MenuItem = mapMenus.Get("mnuRecent")
+			mi.Enabled = True
+		End If
+	End If
+End Sub
+
+#End Region
+
+Sub SuggestProfileNameForPrintSaveExport(TypeOfFile As String) As String
+	'TypeOfFile = save_profile, print, export
+	Dim suggestFileName As String
+	Dim now As Long
+	now = DateTime.Now
+	Dim year As String = DateTime.GetYear(now)
+	Dim month As String = DateTime.GetMonth(now)
+	Dim day As String = DateTime.GetDayOfMonth(now)
+	Dim hour As String = DateTime.GetHour(now)
+	Dim minute As String = DateTime.GetMinute(now)
+	Dim second As String = DateTime.GetSecond(now)
+	If TypeOfFile = "csv" Then
+		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".csv"
+	Else If TypeOfFile = "json" Then
+		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".json"
+	Else If TypeOfFile = "xml" Then
+		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".xml"
+	Else
+		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".txt"
+	End If
+	Return suggestFileName
+End Sub
+
+Sub GetDataFolder (AppName As String) As String
+    Dim os As String = GetSystemProperty("os.name", "").ToLowerCase
+    If os.Contains("win") Then
+    	Dim wf As String = File.Combine(GetEnvironmentVariable("AppData", ""), AppName)
+        File.MakeDir(wf, "")
+        Return wf
+	Else
+		Return File.DirApp
+	End If
+End Sub
+
+Sub tableDataView_SelectedCellChanged (RowIndex As Int, ColIndex As Int, Cell As Object)
+  tableviewRowIndex = RowIndex
+  tableviewColIndex = ColIndex
+  tableviewCell = Cell
+End Sub
+
+
+
+
+
+
+
+
+

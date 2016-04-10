@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+  <title>KVS Viewer</title>
+  <body>
+  <div id="nav">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Topics</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+      <ul>
+        <li><a href="#whatis">What is a KSV file?</a></li>
+        <li>KSV File Operations
+            <ul>
+                <li><a href="#import">Open/Import KSV file.</a></li>
+                <li><a href="#backupfile">Backup KSV file.</a></li>
+                <li><a href="#encrypted">Encrypted Records</a></li>
+                <li><a href="#recent">Recent Items List</a></li>
+            </ul>
+        </li>
+        <li>Record Operations
+            <ul>
+                <li><a href="#rechide">Hide Records</a></li>
+                <li><a href="#reccopy">Copy Records</a></li>
+                <li><a href="#recedit">Edit Records</a></li>
+                <li><a href="#recdelete">Delete Records</a></li>
+                <li><a href="#recreload">Reload Records</a></li>
+                <li><a href="#recclear">Clear Data</a></li>
+            </ul>
+        </li>
+        <li>Exporting KSV File
+            <ul>
+                <li><a href="#export">Plain Text, CSV, JSON, XML</a></li>
+                <li><a href="#validate">CSV, JSON, XML Validation</a></li>
+            </ul>
+        </li>
+        <li><a href="#supported">Supported Data Structures</a></li>
+        <li><a href="#contact">Contact Info</a></li>
+      </ul>
+    </p>
+  </div>
+  
+  <a name="whatis"></a>
+  <div id="whatis">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">What is a KSV file?</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        If you are developing on the B4X platform, you have access to a local SQLite database solution that is easy to implement, without actually owning Database software. This is called the KeyValueStore.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The KeyValueStore is a class that you implement. You can find more information on it here:
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        <a href="https://www.b4x.com/android/forum/threads/keyvaluestore-class.36683/">https://www.b4x.com/android/forum/threads/keyvaluestore-class.36683/</a>
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="import"></a>
+  <div id="import">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Open/Import KSV file.</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Click on the "Find File" button, or click File->Open. Navigate to the KVS file your application created, then click to Open it.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Note: If you have a large file, a file with a lot of encrypted fields, or a file containing a lot of images, it will take several seconds for the application to load the data. Be patient.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="backupfile"></a>
+  <div id="backupfile">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Backup KSV file.</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        I'm a big fan of not making more work for myself. That's why I always like to backup files before making changes.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Click on Edit->Backup KSV File after you have loaded the file in the application. You can backup as many times as you want. The application will serialize the backup files.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="encrypted"></a>
+  <div id="encrypted">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Encrypted Records</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        A KVS file can have all records encrypted or only some records encrypted. Enter the password for your encrypted files in the password box. If you enter this after having loaded the file, click the Reload button. Again, be patiend. Encrypted files load a bit slower if they are large.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        If your KVS data has different passwords, you will need to enter the password and click the Reload button for each different password. The table will only show the data being decrypted with the current password. If it is not present, or not valid, the value will not show.
+       <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="recent"></a>
+  <div id="recent">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Recent Items List</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The application keeps track of the files you open. Just click the drop down list and select a previous file to reload it.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        To clear the recent items list, click Edit->Clear Recent Items
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="rechide"></a>
+  <div id="rechide">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Hide Records</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Right click on the table ROW to select a record and then on the context menu click Hide.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        This will hide the record from the current table view but will NOT delete the record from the KVS file. You can restore the record by clicking the Reload button.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="reccopy"></a>
+  <div id="reccopy">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Copy Records</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Right click on the table CELL to select content and then on the context menu click Copy. The content of that cell is then accessible in your clipboard.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="recedit"></a>
+  <div id="recedit">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Edit Records</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Right click on the table ROW to select a record and then on the context menu click Edit Record.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The key and the value will appear in the editable fields at the bottom of the application. Make your changes and click the Update button.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        NOTE: This makes a permanent change to the KVS File that is currently loaded. Remember what I said about backing things up first?
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="recdelete"></a>
+  <div id="recdelete">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Delete Record</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Right click on the table ROW to select a record and then on the context menu click Delete from KVS. You will be prompted to confirm your decision. This will permanently delete the record from the loaded KVS file.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        NOTE: This makes a permanent change to the KVS File that is currently loaded. Remember what I said about backing things up first?
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="recreload"></a>
+  <div id="recreload">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Reload Records</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        At any time you can Reload the current KVS File being viewed by clicking the Reload button.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        During table view updates, the application attempts to refresh the data being displayed. However, if after a few seconds your update does not appear, then click the Reload button.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="recclear"></a>
+  <div id="recclear">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Clear Data</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Click on Edit->Clear Data to empty the table view. This does NOT affect the live KVS File. The application will always clear the table when it is loading a new KVS File or reloading the current KVS File.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="export"></a>
+  <div id="export">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Export KVS Data to Plain Text, CSV, JSON, XML</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Once you have your KSV File data loaded into the table, you can click Export->{option} to export the data to a properly formatted text file for the format chosen.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="validate"></a>
+  <div id="validate">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Data Validation for CSV, JSON, XML</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        When you export your data to CSV, JSON, or XML, it is recommended that you validate the output before shipping it off to another application or another user.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        Click on Export->Validate and then choose the validator. You will then be taken a website where you can copy and paste your formatted records, or upload the formatted records, to validate their structure.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="supported"></a>
+  <div id="supported">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Supported Data Structures</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The table view supports Text, Numbers, Lists, Maps and Images.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        For Lists and Maps, be very careful about editing those records. The structure they are presented in is different.
+        <dl>
+          <dt>List Example</dt>
+          <dd>[Red, Orange, Yellow, Green, Blue, Indigo, Violet, Mnemonic: Run, Oh You Great Big Irish Varlet]
+          <br /><br />
+          </dd>
+          <dt>Map Example</dt>
+          <dd>{Name=Jim Melanson, Email=jmelanson1965@gmail.com, City=Cobourg, Province=Ontario, Postal Code=K9A-4J8, Bio URL=https://about.me/jim.melanson, Writing website=http://www.jimmelanson.ca}
+          </dd>
+        </dl>
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The data table will only display images if they are *.jpg, *.jpeg, *.gif, *.png, *.bmp. For images to be displayed, the Keyname MUST end with the appropriate extension. See the example files.
+        <br /><br />
+        You cannot currently edit or add an image through the application. Yet.
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="contact"></a>
+  <div id="contact">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Contact</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        If you need assistance using the application, I can respond to questions by email. You can reach me at the address below or through my website.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        E-Mail: <a href="mailto:jmelanson1965@gmail?Subject=KVS%20Viewer%20Question">jmelanson1965@gmail</a>
+        <br /><br />
+        Website: <a href="http://www.jimmelanson.ca/" target="_blank">www.jimmelanson.ca</a>
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  </body>
+</html>
