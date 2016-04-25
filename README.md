@@ -8,5 +8,6 @@ Download the PDF KVS Viewere for B4X.pdf before using/modifying the project.
 
 =====================================
 
-V1.02 Update: April 25th, 2016: Solved the slow loading of tables. No longer supports display of stored images. Supports both KVS V1.0 and V2.0
+V1.02 Update:
+April 25th, 2016: Solved the slow loading of tables. No longer supports display of stored images. Supports both KVS V1.0 and V2.0
 
