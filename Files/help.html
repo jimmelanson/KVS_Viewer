@@ -7,6 +7,7 @@
     <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
       <ul>
         <li><a href="#whatis">What is a KSV file?</a></li>
+        <li><a href="#whatis">KVS vs KVS2</a></li>
         <li>KSV File Operations
             <ul>
                 <li><a href="#import">Open/Import KSV file.</a></li>
@@ -38,7 +39,7 @@
   </div>
   
   <a name="whatis"></a>
-  <div id="whatis">
+  <div id="whatisdiv">
     <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">What is a KSV file?</span>
     <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
         If you are developing on the B4X platform, you have access to a local SQLite database solution that is easy to implement, without actually owning Database software. This is called the KeyValueStore.
@@ -48,6 +49,20 @@
     </p>
     <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
         <a href="https://www.b4x.com/android/forum/threads/keyvaluestore-class.36683/">https://www.b4x.com/android/forum/threads/keyvaluestore-class.36683/</a>
+      <br /><br /><br /><br /><br />
+    </p>
+  </div>
+  <a name="v1v2"></a>
+  <div id="v1v2div">
+    <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">KVS vs KVS2</span>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        KVS is the first version of the KeyValueStore, where KVS2 is the V2.0 offering.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        The two versions are not compatable. Therefore, you need to know which one you are opening and select the appropriate radio button on the user interface (UI). For the rest of this help file, KVS refers to both KVS and KVS2.
+    </p>
+    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
+        KVS2 is simpler, and cross platform (B4X) compatable. Unfortunately, it only supports bitmaps in B4A/B4I/B4R.
       <br /><br /><br /><br /><br />
     </p>
   </div>
@@ -181,7 +196,7 @@
   <div id="supported">
     <span style="font-weight:bold;font-fammily:helvetical,arial,sans-serif;font-size:14pt;">Supported Data Structures</span>
     <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
-        The table view supports Text, Numbers, Lists, Maps and Images.
+        The table view supports Text, Numbers, Lists, and Maps.
     </p>
     <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
         For Lists and Maps, be very careful about editing those records. The structure they are presented in is different.
@@ -194,12 +209,6 @@
           <dd>{Name=Jim Melanson, Email=jmelanson1965@gmail.com, City=Cobourg, Province=Ontario, Postal Code=K9A-4J8, Bio URL=https://about.me/jim.melanson, Writing website=http://www.jimmelanson.ca}
           </dd>
         </dl>
-    </p>
-    <p style="font-weight:normal;font-fammily:helvetical,arial,sans-serif;font-size:12pt;">
-        The data table will only display images if they are *.jpg, *.jpeg, *.gif, *.png, *.bmp. For images to be displayed, the Keyname MUST end with the appropriate extension. See the example files.
-        <br /><br />
-        You cannot currently edit or add an image through the application. Yet.
-      <br /><br /><br /><br /><br />
     </p>
   </div>
   <a name="contact"></a>

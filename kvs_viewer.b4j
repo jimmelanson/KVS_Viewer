@@ -1,7 +1,10 @@
 ﻿Version=4.2
 AppType=JavaFX
-NumberOfModules=1
-Module1=KeyValueStore
+NumberOfModules=4
+Module1=KeyValueStoreV1
+Module2=KeyValueStore
+Module3=createexamples2
+Module4=createexamples
 Build1=Default,b4j.example
 NumberOfFiles=16
 File1=close.png
@@ -20,7 +23,7 @@ File13=remove.png
 File14=synchronize.png
 File15=textfield_delete.png
 File16=world_link.png
-NumberOfLibraries=8
+NumberOfLibraries=9
 Library1=jcore
 Library2=jfx
 Library3=jsql
@@ -29,6 +32,7 @@ Library5=jrandomaccessfile
 Library6=javaobject
 Library7=json
 Library8=jcontrolsfx
+Library9=jb4xencryption
 @EndOfDesignText@
 #Region  Project Attributes 
 	#MainFormWidth: 950
@@ -40,10 +44,12 @@ Library8=jcontrolsfx
 Sub Process_Globals
 	Private fx As JFX
 	Private MainForm As Form
-	Private kvs As KeyValueStore
-	Private kvsRecentItems As KeyValueStore
+	Private kvs1 As KeyValueStoreV1
+	Private kvs2 As KeyValueStore
+	Private kvsRecentItems As KeyValueStoreV1
 	Private dialogue8 As Dialogs8
 	Private strExistingFilePath As String
+	Private strExistingFileName As String
 	Private tableDataView As TableView
 	Private txtPassword As TextField
 	Private btnSelectFile As Button
@@ -54,24 +60,51 @@ Sub Process_Globals
 	Private tableviewCell As Object
 	Private txtAddEditKeyname As TextField
 	Private txtAddEditValue As TextArea
-	Private tmr As Timer
-	Private lblStatus As Label
 	Private statusBar As StatusBar
 	Private mapMenus As  Map
 	Private mapContextMenus As  Map
 	Private MenuBar1 As MenuBar
 	Private boolIsRecentItems As Boolean
+	Private boolIgnoreComoboBoxSelectedIndexChange As Boolean
+	Private radioKVSV1 As RadioButton
+	Private radioKVSV2 As RadioButton
+	Private radiolist As List
+	Private strAppName As String
 End Sub
 
 Sub AppStart (Form1 As Form, Args() As String)
+	If File.exists(GetDataFolder("KVSViewer"), "kvs1_example_unencrypted.dat") = False Then
+		createexamples.createunencrypted
+	End If
+	If File.exists(GetDataFolder("KVSViewer"), "kvs1_example_encrypted.dat") = False Then
+		createexamples.createencrypted
+	End If
+	If File.Exists(GetDataFolder("KVSViewer"), "kvs2_example_unencrypted.dat") = False Then
+		createexamples2.createunencrypted2
+	End If
+	If File.Exists(GetDataFolder("KVSViewer"), "kvs2_example_encrypted.dat") = False Then
+		createexamples2.createencrypted2
+	End If
+	RedirectOutput(File.DirApp, "logs.txt")
+	strAppName = "KVSViewer"
 	MainForm = Form1
 	MainForm.SetFormStyle("UNIFIED")
 	MainForm.RootPane.LoadLayout("main_form") 'Load the layout file.
 	MainForm.Icon = fx.LoadImage(File.DirAssets, "Glasses.png")
 	MainForm.Show
+	boolIgnoreComoboBoxSelectedIndexChange = False
 	statusBar.Initialize("statusBar")
 	MainForm.RootPane.AddNode(statusBar, 0, 0, -1, 30)
 	MainForm.RootPane.SetAnchors(statusBar, 0, -1, 0, 0)
+	radiolist.Initialize
+	radiolist.Add(radioKVSV1)
+	radiolist.Add(radioKVSV2)
+	radioKVSV1.GroupRadioButtons(radiolist)
+	If File.Exists(GetDataFolder(strAppName), "remradkvsv2.txt") = True Then
+		radioKVSV2.Selected = True
+	Else
+		radioKVSV1.Selected = True
+	End If
 	statusBar.Text = "KSV Viewer 1.0"
 	dialogue8.Initialize
 	tableDataView.SetColumnHeader(0, "Key")
@@ -81,7 +114,7 @@ Sub AppStart (Form1 As Form, Args() As String)
 	tableDataView.SetColumnSortable(0, True)
 	tableDataView.SetColumnSortable(1, True)
 	tableDataView.SingleCellSelection = True
-	kvsRecentItems.Initialize(GetDataFolder("KVSViewer"), "recentitems.data")
+	kvsRecentItems.Initialize(GetDataFolder(strAppName), "recentitems.data")
 	If kvsRecentItems.ContainsKey("ExistingFilePath") = True Then
 		strExistingFilePath = kvsRecentItems.GetSimple("ExistingFilePath")
 	End If
@@ -99,20 +132,21 @@ Sub MainForm_Resize (Width As Double, Height As Double)
 	End If
 End Sub
 
+Sub RedirectOutput (Dir As String, FileName As String)
+   #if RELEASE
+   Dim out As OutputStream = File.OpenOutput(Dir, FileName, False) 'Set to True to append the logs
+   Dim ps As JavaObject
+   ps.InitializeNewInstance("java.io.PrintStream", Array(out, True, "utf8"))
+   Dim jo As JavaObject
+   jo.InitializeStatic("java.lang.System")
+   jo.RunMethod("setOut", Array(ps))
+   jo.RunMethod("setErr", Array(ps))
+   #end if
+End Sub
+
+
+
 #Region status message
-
-Sub DisplayStatusMessage(strMessage As String)
-	If strMessage <> "" Then
-		lblStatus.Text = strMessage
-		tmr.Initialize("Timer1", 5000)
-		tmr.Enabled = True
-	End If
-End Sub
-
-Sub Timer1_tick
-	lblStatus.Text = ""
-	tmr.Enabled = False
-End Sub
 
 Sub ChangeStatusBarMessage(strMessage As String)
 	statusBar.Text = strMessage
@@ -134,25 +168,41 @@ Sub btnAddEdit_Action
 				MenuDisableItems
 				RecentItemsEnableDisableMenuItem
 			Else
-				DisplayStatusMessage("File Loading...")
 				ChangeStatusBarMessage("File Loading ...")
 				strExistingFilePath = strPath
-				If kvs.IsInitialized = True Then
-					kvs.Close
-				End If
-				kvs.Initialize(strPath, strFile)
-				If txtPassword.Text <> "" Then
-					kvs.PutEncyptedObject(txtAddEditKeyname.Text, txtAddEditValue.Text, txtPassword.Text)
+				strExistingFileName = strFile
+				If radioKVSV1.Selected = True Then
+					If kvs1.IsInitialized = True Then
+						kvs1.Close
+					End If
+					kvs1.Initialize(strPath, strFile)
+					If txtPassword.Text <> "" Then
+						kvs1.PutEncyptedObject(txtAddEditKeyname.Text, txtAddEditValue.Text, txtPassword.Text)
+					Else
+						kvs1.PutSimple(txtAddEditKeyname.Text, txtAddEditValue.Text)
+					End If
 				Else
-					kvs.PutSimple(txtAddEditKeyname.Text, txtAddEditValue.Text)
+					If kvs2.IsInitialized = True Then
+						kvs2.Close
+					End If
+					kvs2.Initialize(strPath, strFile)
+					If txtPassword.Text <> "" Then
+						kvs2.PutEncrypted(txtAddEditKeyname.Text, txtAddEditValue.Text, txtPassword.Text)
+					Else
+						kvs2.Put(txtAddEditKeyname.Text, txtAddEditValue.Text)
+					End If
 				End If
-				refreshTableView
+				btnReload_Action
 				txtAddEditKeyname.Text = ""
 				txtAddEditValue.Text = ""
 				MenuEnableItems
 				RecentItemsEnableDisableMenuItem
-				DisplayStatusMessage("Key/Value updated completed.")
 				ChangeStatusBarMessage("Key/Value pair updated. If the key did not exist it was added.")
+				If radioKVSV1.Selected = True Then
+					kvs1.Close
+				Else
+					kvs2.Close
+				End If
 			End If
 		End If
 	End If
@@ -174,20 +224,29 @@ Sub btnReload_Action
 				MenuDisableItems
 				RecentItemsEnableDisableMenuItem
 			Else
-				DisplayStatusMessage("File Loading...")
 				ChangeStatusBarMessage("File Loading ...")
 				strExistingFilePath = strPath
-				If kvs.IsInitialized = True Then
-					kvs.Close
+				strExistingFileName = strFile
+				If radioKVSV1.Selected = True Then
+					If kvs1.IsInitialized = True Then
+						kvs1.Close
+					End If
+					kvs1.Initialize(strPath, strFile)
+				Else
+					If kvs2.IsInitialized = True Then
+						kvs2.Close
+					End If
+					kvs2.Initialize(strPath, strFile)
 				End If
-				kvs.Initialize(strPath, strFile)
 				LoadKVSData
-				tmr.Initialize("Timer1", 3000)
-				tmr.Enabled = True
 				MenuEnableItems
 				RecentItemsEnableDisableMenuItem
-				DisplayStatusMessage("File reloaded.")
 				ChangeStatusBarMessage("File reloaded.")
+				If radioKVSV1.Selected = True Then
+					kvs1.Close
+				Else
+					kvs2.Close
+				End If
 			End If
 		End If
 	End If
@@ -201,31 +260,45 @@ Sub comboFileField_ValueChanged (Value As Object)
 End Sub
 
 Sub comboFileField_SelectedIndexChanged(Index As Int, Value As Object)
-	If comboFileField.SelectedIndex > -1 Then
-		If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
-			Dim strFile As String
-			strExistingFilePath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
-			kvsRecentItems.PutSimple("ExistingFilePath", strExistingFilePath)
-			strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
-			If File.IsDirectory(strExistingFilePath, strFile) = True Then
-				fx.Msgbox(MainForm, "You must select a file to import.", "No File Selected")
-				MenuDisableItems
-			Else
-				DisplayStatusMessage("File Loading...")
-				ChangeStatusBarMessage("File Loading ...")
-				If kvs.IsInitialized = True Then
-					kvs.Close
+	If boolIgnoreComoboBoxSelectedIndexChange = False Then
+		If comboFileField.SelectedIndex > -1 Then
+			If comboFileField.Items.Get(comboFileField.SelectedIndex) <> "" Then
+				Dim strFile As String
+				strExistingFilePath = File.GetFileParent(comboFileField.Items.Get(comboFileField.SelectedIndex))
+				strExistingFileName = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+				kvsRecentItems.PutSimple("ExistingFilePath", strExistingFilePath)
+				strFile = File.GetName(comboFileField.Items.Get(comboFileField.SelectedIndex))
+				If File.IsDirectory(strExistingFilePath, strFile) = True Then
+					fx.Msgbox(MainForm, "You must select a file to import.", "No File Selected")
+					MenuDisableItems
+				Else
+					ChangeStatusBarMessage("File Loading ...")
+					If radioKVSV1.Selected = True Then
+						If kvs1.IsInitialized = True Then
+							kvs1.Close
+						End If
+						kvs1.Initialize(strExistingFilePath, strExistingFileName)
+					Else
+						If kvs2.IsInitialized = True Then
+							kvs2.Close
+						End If
+						kvs2.Initialize(strExistingFilePath, strExistingFileName)
+					End If
+					LoadKVSData
+					MenuEnableItems
+					ChangeStatusBarMessage("File loaded: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
+					If radioKVSV1.Selected = True Then
+						kvs1.Close
+					Else
+						kvs2.Close
+					End If
 				End If
-				kvs.Initialize(strExistingFilePath, strFile)
-				LoadKVSData
-				MenuEnableItems
-				ChangeStatusBarMessage("File loaded: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
 			End If
+		Else
+			tableDataView.Items.Clear
+			MenuDisableItems
+			ChangeStatusBarMessage("")
 		End If
-	Else
-		tableDataView.Items.Clear
-		MenuDisableItems
-		ChangeStatusBarMessage("")
 	End If
 End Sub
 
@@ -235,19 +308,17 @@ Sub LoadFile
 	If strExistingFilePath <> "" Then
 	    saveopenFile.InitialDirectory = strExistingFilePath
 	Else
-		saveopenFile.InitialDirectory = GetDataFolder("KVSViewer")
+		saveopenFile.InitialDirectory = GetDataFolder(strAppName)
 	End If
 	Dim strFilePath As String
 	strFilePath = saveopenFile.ShowOpen(MainForm)
 	MenuDisableItems
 	If strFilePath <> "" Then
-		DisplayStatusMessage("File Loading...")
 		ChangeStatusBarMessage("File Loading ...")
-	    Dim strPath As String
-		Dim strFile As String
-		strPath = File.GetFileParent(strFilePath)
-		strFile = File.GetName(strFilePath)
-		SaveRecentItems(strPath, strFile)
+		strExistingFilePath = File.GetFileParent(strFilePath)
+		strExistingFileName = File.GetName(strFilePath)
+		SaveRecentItems(strExistingFilePath, strExistingFileName)
+		boolIgnoreComoboBoxSelectedIndexChange = True
 		Dim boolIsInList As Boolean = False
 		For i = 0 To comboFileField.Items.Size - 1
 			If comboFileField.Items.Get(i) = strFilePath Then
@@ -259,6 +330,19 @@ Sub LoadFile
 			comboFileField.Items.InsertAt(0, strFilePath)
 			comboFileField.SelectedIndex = 0
 		End If
+		boolIgnoreComoboBoxSelectedIndexChange = False
+		If radioKVSV1.Selected = True Then
+			If kvs1.IsInitialized = True Then
+				kvs1.Close
+			End If
+			kvs1.Initialize(strExistingFilePath, strExistingFileName)
+		Else
+			If kvs2.IsInitialized = True Then
+				kvs2.Close
+			End If
+			kvs2.Initialize(strExistingFilePath, strExistingFileName)
+		End If
+		LoadKVSData
 		MenuEnableItems
 		ChangeStatusBarMessage("File loaded: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
 	End If
@@ -268,43 +352,65 @@ Sub LoadKVSData
 	tableDataView.Items.Clear
 	Dim listKeys As List
 	listKeys.Initialize
-	listKeys = kvs.ListKeys
+	If radioKVSV1.Selected = True Then
+		listKeys = kvs1.ListKeys
+	Else
+		listKeys = kvs2.ListKeys
+	End If
 	For i = 0 To listKeys.Size - 1
 		Dim Row(2) As Object
 		Row(0) = listKeys.Get(i)
 		Dim strKeyName As String = listKeys.Get(i)
 		strKeyName = strKeyName.ToLowerCase
-		If txtPassword.Text <> "" Then
-			Try
-				Row(1) = kvs.GetEncryptedObject(listKeys.Get(i), txtPassword.Text)
-			Catch
-				If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
-					strKeyName.Contains(".jpg")
-					Dim im As ImageView
-					im.Initialize("im")
-					im.SetImage(kvs.GetBitmap(listKeys.Get(i)))
-					Row(1) = im
-			    Else
-					Try
-						Row(1) = kvs.GetObject(listKeys.Get(i))
-					Catch
-						Row(1) = kvs.GetSimple(listKeys.Get(i))
-					End Try
-				End If
-			End Try
+		Dim typeofvalue As String
+		Dim rs As ResultSet
+		If radioKVSV1.Selected = True Then
+			rs = kvs1.sql1.ExecQuery2("SELECT typeof(value) FROM main WHERE key = ?", Array As String(listKeys.Get(i)))
 		Else
-			If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
-				strKeyName.Contains(".jpg")
-				Dim im As ImageView
-				im.Initialize("im")
-				im.SetImage(kvs.GetBitmap(listKeys.Get(i)))
-				Row(1) = im
-		    Else
-				Try
-					Row(1) = kvs.GetObject(listKeys.Get(i))
-				Catch
-					Row(1) = kvs.GetSimple(listKeys.Get(i))
-				End Try
+			rs = kvs2.sql1.ExecQuery2("SELECT typeof(value) FROM main WHERE key = ?", Array As String(listKeys.Get(i)))
+		End If
+		typeofvalue = rs.GetString(rs.GetColumnName(0))
+		If typeofvalue.ToLowerCase = "null" Or typeofvalue.ToLowerCase = "blob" Then
+			If radioKVSV1.Selected = True Then
+				If txtPassword.Text <> "" Then
+					If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
+						Dim im As ImageView
+						im.Initialize("im")
+						im.SetImage(kvs1.GetBitmap(listKeys.Get(i)))
+						Row(1) = im
+				    Else
+						Row(1) = kvs1.GetEncryptedObject(listKeys.Get(i), txtPassword.Text)
+					End If
+				Else
+					If strKeyName.Contains(".jpg") = True Or strKeyName.Contains(".jpeg") = True Or strKeyName.Contains(".gif") = True Or strKeyName.Contains(".png") = True Or strKeyName.Contains(".bmp") = True Then
+						Dim im As ImageView
+						im.Initialize("im")
+						im.SetImage(kvs1.GetBitmap(listKeys.Get(i)))
+						Row(1) = im
+				    Else
+						Row(1) = kvs1.GetObject(listKeys.Get(i))
+					End If
+				End If
+			Else
+				If txtPassword.Text <> "" Then
+					Row(1) = kvs2.GetEncrypted(listKeys.Get(i), txtPassword.Text)
+				Else
+					Row(1) = kvs2.Get(listKeys.Get(i))
+				End If
+			End If
+		Else
+			If radioKVSV1.Selected = True Then
+				If txtPassword.Text <> "" Then
+					Row(1) = kvs1.GetEncryptedObject(listKeys.Get(i), txtPassword.Text)
+				Else
+					Row(1) = kvs1.GetSimple(listKeys.Get(i))
+				End If
+			Else
+				If txtPassword.Text <> "" Then
+					Row(1) = kvs2.GetEncrypted(listKeys.Get(i), txtPassword.Text)
+				Else
+					Row(1) = kvs2.Get(listKeys.Get(i))
+				End If
 			End If
 		End If
 		tableDataView.Items.Add(Row)
@@ -439,7 +545,6 @@ End Sub
 Sub menuHideTableRow_Action
 	If tableDataView.SelectedRow >= 0 Then
 		tableDataView.Items.RemoveAt(tableDataView.SelectedRow)
-		DisplayStatusMessage("Click RELOAD to see the item again.")
 		ChangeStatusBarMessage("The selected row has been hidden, but not deleted from the KSV file. To see the row again, click the Reload button.")
 	End If
 End Sub
@@ -449,13 +554,27 @@ Sub menuKVSDeleteRecord_Action
 		If dialogue8.ConfirmationDialog("Key Value Store", "Live File Modification Confirmation", "Do you really want to DELETE the selected key/value pair from the LIVE file?") = True Then
 			Dim Row() As Object = tableDataView.Items.Get(tableDataView.SelectedRow)
 			Dim strKeyname As String = Row(0)
-			kvs.Remove(Row(0))
+			If radioKVSV1.Selected = True Then
+				If kvs1.IsInitialized = True Then
+					kvs1.Close
+				End If
+				kvs1.Initialize(strExistingFilePath, strExistingFileName)
+				kvs1.Remove(Row(0))
+			Else
+				If kvs2.IsInitialized = True Then
+					kvs2.Close
+				End If
+				kvs2.Initialize(strExistingFilePath, strExistingFileName)
+				kvs2.Remove(Row(0))
+			End If
 			tableDataView.Items.RemoveAt(tableDataView.SelectedRow)
-			DisplayStatusMessage("Record removed from KVS.")
 			ChangeStatusBarMessage("The selected record for the key " & QUOTE & strKeyname & QUOTE & " has been permanently removed from: " & comboFileField.Items.Get(comboFileField.SelectedIndex))
 			refreshTableView
-		Else
-			DisplayStatusMessage("Record deletion has been cancelled.")
+			If radioKVSV1.Selected = True Then
+				kvs1.Close
+			Else
+				kvs2.Close
+			End If
 		End If
 	End If
 End Sub
@@ -478,8 +597,15 @@ End Sub
 
 Sub menuClearData_Action
 	tableDataView.Items.Clear
-	If kvs.IsInitialized = True Then
-		kvs.Close
+	
+	If radioKVSV1.Selected = True Then
+		If kvs1.IsInitialized = True Then
+			kvs1.Close
+		End If
+	Else
+		If kvs2.IsInitialized = True Then
+			kvs2.Close
+		End If
 	End If
 	ChangeStatusBarMessage("Contents cleared.")
 	MenuDisableItems
@@ -487,12 +613,11 @@ End Sub
 
 Sub menuClearRecentItems_Action
 	ClearRecentItemsList
-	DisplayStatusMessage("Recent items deleted.")
 	ChangeStatusBarMessage("The recent items list has been deleted.")
 End Sub
 
 Sub menuAbout_Action
-    dialogue8.InformationDialog("About", "KVS Viewer V1.0" & CRLF & "Copyright © 2016, James Melanson", "KVS Viewer allows you to view the contents of a KVS data file while developing your application, or during data forensics.")
+    dialogue8.InformationDialog("About", "KVS Viewer V1.02" & CRLF & "Copyright © 2016, James Melanson", "KVS Viewer allows you to view the contents of a KVS data file while developing your application, or during data forensics.")
 	'"Application icon provided free by icon8.com : http://ic8.link/3694"
     ChangeStatusBarMessage("KSV Viewer 1.0, Copyright © 2016, Jim Melanson")
 End Sub
@@ -542,11 +667,9 @@ Sub menuBackupKSVFile_Action
 				Next
 				If strUseFileName <> "" Then
 					File.Copy(strPath, strFile, strPath, strUseFileName)
-					DisplayStatusMessage("Backup file created.")
 	    			ChangeStatusBarMessage("Backup file creadted: " & File.Combine(strPath, strUseFileName))
 				Else
 					dialogue8.WarningDialog("KSV File Backup", "Backup Error", "The application could not create a backup file. Please do so manually.")
-					DisplayStatusMessage("Backup Failed.")
 					ChangeStatusBarMessage("Backu process failed. There are too many backup copies. Please backup the file manually, or remove some of your previous backups.")
 				End If
 			End If
@@ -579,7 +702,7 @@ Sub menuExportToCSV_Action
 				If strExistingFilePath.Length > 0 Then
 					fc.InitialDirectory = strExistingFilePath
 				Else
-					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+					fc.InitialDirectory = GetDataFolder(strAppName) 	
 				End If
 				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("csv")
 				fc.Title = "Save CSV File"
@@ -596,7 +719,6 @@ Sub menuExportToCSV_Action
 				filePath = filePath.Replace(fileName, "")
 				strExistingFilePath = filePath
 				File.WriteList(filePath, fileName, listWrite)
-				DisplayStatusMessage(File.Combine(filePath, fileName))
 				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
 				ChangeStatusBarMessage("The displayed contents have been exported as a CSV file: " & File.Combine(filePath, fileName))
 			End If
@@ -623,7 +745,7 @@ Sub menuExportToText_Action
 				If strExistingFilePath.Length > 0 Then
 					fc.InitialDirectory = strExistingFilePath
 				Else
-					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+					fc.InitialDirectory = GetDataFolder(strAppName) 	
 				End If
 				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("txt")
 				fc.Title = "Save CSV File"
@@ -640,7 +762,6 @@ Sub menuExportToText_Action
 				filePath = filePath.Replace(fileName, "")
 				strExistingFilePath = filePath
 				File.WriteList(filePath, fileName, listWrite)
-				DisplayStatusMessage(File.Combine(filePath, fileName))
 				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
 				ChangeStatusBarMessage("The displayed contents have been exported as a TEXT file: " & File.Combine(filePath, fileName))
 			End If
@@ -666,7 +787,7 @@ Sub menuExportToXML_Action
 				If strExistingFilePath.Length > 0 Then
 					fc.InitialDirectory = strExistingFilePath
 				Else
-					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+					fc.InitialDirectory = GetDataFolder(strAppName) 	
 				End If
 				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("xml")
 				fc.Title = "Save CSV File"
@@ -684,7 +805,6 @@ Sub menuExportToXML_Action
 				strExistingFilePath = filePath
 				File.WriteString(filePath, fileName, strXMLContent)
 				fx.ShowExternalDocument(File.GetUri(filePath, fileName))
-				DisplayStatusMessage(File.Combine(filePath, fileName))
 				ChangeStatusBarMessage("The displayed contents have been exported as an XML file: " & File.Combine(filePath, fileName))
 			End If
 		End If
@@ -713,7 +833,7 @@ Sub menuExportToJSON_Action
 				If strExistingFilePath.Length > 0 Then
 					fc.InitialDirectory = strExistingFilePath
 				Else
-					fc.InitialDirectory = GetDataFolder("KVSViewer") 	
+					fc.InitialDirectory = GetDataFolder(strAppName) 	
 				End If
 				fc.InitialFileName = SuggestProfileNameForPrintSaveExport("json")
 				fc.Title = "Save CSV File"
@@ -828,14 +948,20 @@ Sub SuggestProfileNameForPrintSaveExport(TypeOfFile As String) As String
 	Dim hour As String = DateTime.GetHour(now)
 	Dim minute As String = DateTime.GetMinute(now)
 	Dim second As String = DateTime.GetSecond(now)
-	If TypeOfFile = "csv" Then
-		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".csv"
-	Else If TypeOfFile = "json" Then
-		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".json"
-	Else If TypeOfFile = "xml" Then
-		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".xml"
+	Dim strKvsLeader As String
+	If radioKVSV1.Selected = True Then
+		strKvsLeader = "kvs_"
 	Else
-		suggestFileName = "kvs_" & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".txt"
+		strKvsLeader = "kvs2_"
+	End If
+	If TypeOfFile = "csv" Then
+		suggestFileName = strKvsLeader & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".csv"
+	Else If TypeOfFile = "json" Then
+		suggestFileName = strKvsLeader & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".json"
+	Else If TypeOfFile = "xml" Then
+		suggestFileName = strKvsLeader & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".xml"
+	Else
+		suggestFileName = strKvsLeader & year & "-" & month & "-" & day & "_" & hour & "-" & minute & "-" & second & ".txt"
 	End If
 	Return suggestFileName
 End Sub
@@ -857,11 +983,30 @@ Sub tableDataView_SelectedCellChanged (RowIndex As Int, ColIndex As Int, Cell As
   tableviewCell = Cell
 End Sub
 
+Sub radioKVSV1_SelectedChange(Selected As Boolean)
+	If Selected = True Then
+		If File.Exists(GetDataFolder(strAppName), "remradkvsv2.txt") = True Then
+			File.Delete(GetDataFolder(strAppName), "remradkvsv2.txt") 
+		End If
+		tableDataView.Items.Clear
+		txtPassword.Text = ""
+		File.WriteString(GetDataFolder(strAppName), "remradkvsv1.txt", "1")
+	End If
+End Sub
 
+Sub radioKVSV2_SelectedChange(Selected As Boolean)
+	If Selected = True Then
+		If File.Exists(GetDataFolder(strAppName), "remradkvsv1.txt") = True Then
+			File.Delete(GetDataFolder(strAppName), "remradkvsv1.txt") 
+		End If
+		tableDataView.Items.Clear
+		txtPassword.Text = ""
+		File.WriteString(GetDataFolder(strAppName), "remradkvsv2.txt", "1")
+	End If
+End Sub
 
-
-
-
-
-
-
+Sub txtPassword_TextChanged (Old As String, New As String)
+	If Old <> New Then
+		tableDataView.Items.Clear
+	End If
+End Sub
